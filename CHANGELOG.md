@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-01-09
+
+### Changed
+- **Timezone Update: WITA (Waktu Indonesia Tengah)**
+  - ⏰ Sistem sekarang menggunakan zona waktu WITA (UTC+8) untuk semua operasi waktu
+  - Check-in dan check-out sekarang menggunakan waktu Indonesia Tengah
+  - Validasi jam check-in/check-out menggunakan zona waktu WITA
+  - Tanggal attendance diproses dalam zona waktu WITA
+  - Timestamp validasi guru menggunakan waktu WITA
+  
+### Technical Details
+- Added `getWITATime()` helper function in `lib/location.ts`
+- Added `getWITADateString()` helper function for date strings
+- Updated all date/time operations across:
+  - `/app/api/student/checkin/route.ts`
+  - `/app/api/student/checkout/route.ts`
+  - `/app/api/student/status/route.ts`
+  - `/app/api/teacher/attendance/route.ts`
+  - `/app/api/teacher/validate/route.ts`
+- Time window validation functions now use WITA timezone
+
 ## [1.0.0] - 2026-01-08
 
 ### 🎉 Initial Release

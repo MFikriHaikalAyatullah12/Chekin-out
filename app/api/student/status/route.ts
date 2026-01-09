@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { extractToken, verifyToken } from '@/lib/auth';
+import { getWITADateString } from '@/lib/location';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,8 +44,8 @@ export async function GET(request: NextRequest) {
       } : null
     };
 
-    // Get today's date
-    const today = new Date().toISOString().split('T')[0];
+    // Get today's date in WITA
+    const today = getWITADateString();
 
     const result = await pool.query(
       'SELECT * FROM attendance WHERE user_id = $1 AND date = $2',

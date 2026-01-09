@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { extractToken, verifyToken } from '@/lib/auth';
+import { getWITADateString } from '@/lib/location';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const dateParam = url.searchParams.get('date');
     const classIdParam = url.searchParams.get('class_id');
-    const date = dateParam || new Date().toISOString().split('T')[0];
+    const date = dateParam || getWITADateString();
 
     let query, params;
 

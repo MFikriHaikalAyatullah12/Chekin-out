@@ -1,6 +1,26 @@
 import { LocationData, ValidationResult, ValidationStatus, SchoolSettings } from './types';
 
 /**
+ * GET CURRENT TIME IN WITA (Waktu Indonesia Tengah / Central Indonesia Time)
+ * WITA is UTC+8
+ */
+export function getWITATime(): Date {
+  const now = new Date();
+  // Convert to WITA (UTC+8)
+  const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+  const witaTime = new Date(utcTime + (8 * 3600000));
+  return witaTime;
+}
+
+/**
+ * GET WITA DATE STRING (YYYY-MM-DD)
+ */
+export function getWITADateString(): string {
+  const witaTime = getWITATime();
+  return witaTime.toISOString().split('T')[0];
+}
+
+/**
  * HAVERSINE FORMULA
  * Calculate distance between two points on Earth
  * Returns distance in meters
@@ -110,12 +130,15 @@ export function calculateFinalStatus(
 
 /**
  * CHECK IF CURRENT TIME IS WITHIN CHECK-IN WINDOW
+ * Uses WITA (Waktu Indonesia Tengah) timezone
  */
 export function isWithinCheckinWindow(
   currentTime: Date,
   settings: SchoolSettings
 ): boolean {
-  const current = currentTime.getHours() * 60 + currentTime.getMinutes();
+  // Convert to WITA time
+  const witaTime = getWITATime();
+  const current = witaTime.getHours() * 60 + witaTime.getMinutes();
   const [startHour, startMin] = settings.checkin_start_time.split(':').map(Number);
   const [endHour, endMin] = settings.checkin_end_time.split(':').map(Number);
   
@@ -127,12 +150,15 @@ export function isWithinCheckinWindow(
 
 /**
  * CHECK IF CURRENT TIME IS WITHIN CHECK-OUT WINDOW
+ * Uses WITA (Waktu Indonesia Tengah) timezone
  */
 export function isWithinCheckoutWindow(
   currentTime: Date,
   settings: SchoolSettings
 ): boolean {
-  const current = currentTime.getHours() * 60 + currentTime.getMinutes();
+  // Convert to WITA time
+  const witaTime = getWITATime();
+  const current = witaTime.getHours() * 60 + witaTime.getMinutes();
   const [startHour, startMin] = settings.checkout_start_time.split(':').map(Number);
   const [endHour, endMin] = settings.checkout_end_time.split(':').map(Number);
   

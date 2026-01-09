@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { extractToken, verifyToken } from '@/lib/auth';
+import { getWITATime } from '@/lib/location';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +20,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Attendance ID harus diisi' }, { status: 400 });
     }
 
-    // Update attendance with teacher validation
+    // Update attendance with teacher validation (using WITA time)
     const result = await pool.query(
       `UPDATE attendance SET 
         final_status = $1,
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
         validated_at = $4
       WHERE id = $5
       RETURNING *`,
-      [final_status, teacher_note || null, payload.userId, new Date(), attendance_id]
+      [final_status, teacher_note || null, payload.userId, getWITATime(), attendance_id]
     );
 
     if (result.rows.length === 0) {

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { extractToken, verifyToken } from '@/lib/auth';
-import { validateLocation, calculateFinalStatus, isWithinCheckinWindow } from '@/lib/location';
+import { validateLocation, calculateFinalStatus, isWithinCheckinWindow, getWITATime, getWITADateString } from '@/lib/location';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
     }
     const settings = settingsResult.rows[0];
 
-    // Check if within check-in time window
-    const now = new Date();
+    // Check if within check-in time window (uses WITA)
+    const now = getWITATime();
     if (!isWithinCheckinWindow(now, settings)) {
       return NextResponse.json(
         { 
@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
     // Validate location (NO GPS COORDINATES STORED!)
     const validation = validateLocation({ latitude, longitude, accuracy }, settings);
 
-    // Get today's date
-    const today = now.toISOString().split('T')[0];
+    // Get today's date in WITA
+    const today = getWITADateString();
 
     // Check if already checked in today
     const existingResult = await pool.query(
