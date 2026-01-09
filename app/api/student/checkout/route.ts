@@ -54,42 +54,49 @@ export async function POST(request: NextRequest) {
       [payload.userId, today]
     );
 
+    let attendance;
+
     if (existingResult.rows.length === 0) {
-      return NextResponse.json(
-        { error: 'Anda belum melakukan check-in hari ini' },
-        { status: 400 }
+      // No check-in record exists - create new attendance with checkout only
+      // Status will be PERLU_VERIFIKASI since student didn't check-in
+      // Teacher will make final decision
+      const insertResult = await pool.query(
+        `INSERT INTO attendance (user_id, date, check_out_time, check_out_status, final_status)
+        VALUES ($1, $2, $3, $4, 'PERLU_VERIFIKASI')
+        RETURNING *`,
+        [payload.userId, today, now, validation.status]
       );
-    }
+      attendance = insertResult.rows[0];
+    } else {
+      const existing = existingResult.rows[0];
 
-    const existing = existingResult.rows[0];
+      if (existing.check_out_time) {
+        return NextResponse.json(
+          { error: 'Anda sudah melakukan check-out hari ini' },
+          { status: 400 }
+        );
+      }
 
-    if (existing.check_out_time) {
-      return NextResponse.json(
-        { error: 'Anda sudah melakukan check-out hari ini' },
-        { status: 400 }
+      const finalStatus = calculateFinalStatus(existing.check_in_status, validation.status);
+
+      const updateResult = await pool.query(
+        `UPDATE attendance SET 
+          check_out_time = $1,
+          check_out_status = $2,
+          final_status = $3
+        WHERE id = $4
+        RETURNING *`,
+        [now, validation.status, finalStatus, existing.id]
       );
+      attendance = updateResult.rows[0];
     }
-
-    const finalStatus = calculateFinalStatus(existing.check_in_status, validation.status);
-
-    const updateResult = await pool.query(
-      `UPDATE attendance SET 
-        check_out_time = $1,
-        check_out_status = $2,
-        final_status = $3
-      WHERE id = $4
-      RETURNING *`,
-      [now, validation.status, finalStatus, existing.id]
-    );
-
-    const attendance = updateResult.rows[0];
 
     return NextResponse.json({
       success: true,
       attendance,
       validation: {
         status: validation.status,
-        message: validation.message,
+        message: attendance.check_in_time ? validation.message : `${validation.message} (Perlu verifikasi guru karena tidak check-in)`,
         distance: validation.distance,
       },
     });

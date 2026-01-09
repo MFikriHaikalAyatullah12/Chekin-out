@@ -695,11 +695,11 @@ export default function StudentDashboard() {
 
           <button
             onClick={handleCheckout}
-            disabled={actionLoading || !attendance?.check_in_time || attendance?.check_out_time || !isCheckoutTime}
+            disabled={actionLoading || attendance?.check_out_time || !isCheckoutTime}
             className={`${
               attendance?.check_out_time 
                 ? 'bg-gradient-to-r from-gray-300 to-gray-400 cursor-not-allowed' 
-                : attendance?.check_in_time && isCheckoutTime
+                : isCheckoutTime
                 ? 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-xl hover:shadow-2xl active:scale-95'
                 : 'bg-gradient-to-r from-gray-300 to-gray-400 cursor-not-allowed'
             } text-white py-6 sm:py-8 rounded-2xl font-bold text-lg sm:text-xl transition-all disabled:opacity-70 disabled:cursor-not-allowed touch-manipulation`}
@@ -709,9 +709,7 @@ export default function StudentDashboard() {
               <span className="text-sm sm:text-base">{attendance?.check_out_time ? 'Sudah Check-out' : 'Check-out Kehadiran'}</span>
               {!attendance?.check_out_time && (
                 <span className="text-xs sm:text-sm font-normal opacity-90">
-                  {!attendance?.check_in_time 
-                    ? 'Check-in dulu'
-                    : isCheckoutTime 
+                  {isCheckoutTime 
                     ? 'Jam 14:00 - 15:00 WITA' 
                     : `Tutup (${currentTime} WITA)`}
                 </span>
