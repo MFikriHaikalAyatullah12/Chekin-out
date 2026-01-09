@@ -88,10 +88,24 @@ export default function TeacherDashboard() {
     handleValidate(student.attendance_id, status, note || '');
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      // Call logout API to clear cookie
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Redirect to login
+      router.push('/login');
+    }
   };
 
   const getStatusBadge = (status: string) => {

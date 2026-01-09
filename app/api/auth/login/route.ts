@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    // Create response with token in both body and cookie
+    const response = NextResponse.json({
       success: true,
       token,
       user: {
@@ -67,6 +68,17 @@ export async function POST(request: NextRequest) {
         class: classInfo,
       },
     });
+
+    // Set token in HTTP-only cookie for security
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

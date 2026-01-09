@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS school_settings (
     valid_radius INTEGER NOT NULL DEFAULT 100,
     -- Check-in time window
     checkin_start_time TIME NOT NULL DEFAULT '07:00:00',
-    checkin_end_time TIME NOT NULL DEFAULT '08:00:00',
+    checkin_end_time TIME NOT NULL DEFAULT '12:00:00',
     -- Check-out time window
     checkout_start_time TIME NOT NULL DEFAULT '14:00:00',
     checkout_end_time TIME NOT NULL DEFAULT '15:00:00',

@@ -14,38 +14,68 @@ export default function StudentDashboard() {
   const [showClassList, setShowClassList] = useState(false);
   const [joiningClass, setJoiningClass] = useState(false);
   const [leavingClass, setLeavingClass] = useState(false);
+  const [isCheckinTime, setIsCheckinTime] = useState(false);
   const [isCheckoutTime, setIsCheckoutTime] = useState(false);
   const [currentTime, setCurrentTime] = useState('');
+  const [timeInfo, setTimeInfo] = useState<{checkin: string, checkout: string}>({checkin: '07:00 - 12:00', checkout: '14:00 - 15:00'});
 
-  // Check if current time is within checkout window
-  const checkCheckoutTime = () => {
+  // Get WITA Time (Waktu Indonesia Tengah = UTC+8)
+  const getWITATime = () => {
     const now = new Date();
-    // Convert to WITA (UTC+8)
     const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
     const witaTime = new Date(utcTime + (8 * 3600000));
+    return witaTime;
+  };
+
+  // Check if current time is within time windows
+  const checkTimeWindows = () => {
+    const witaTime = getWITATime();
     
     const hours = witaTime.getHours();
     const minutes = witaTime.getMinutes();
     const currentMinutes = hours * 60 + minutes;
     
-    // Checkout time: 14:00 - 15:00
+    // Check-in time: 07:00 - 12:00
+    const checkinStart = 7 * 60;   // 07:00
+    const checkinEnd = 12 * 60;    // 12:00
+    
+    // Check-out time: 14:00 - 15:00
     const checkoutStart = 14 * 60; // 14:00
     const checkoutEnd = 15 * 60;   // 15:00
     
+    const isWithinCheckin = currentMinutes >= checkinStart && currentMinutes <= checkinEnd;
     const isWithinCheckout = currentMinutes >= checkoutStart && currentMinutes <= checkoutEnd;
+    
+    setIsCheckinTime(isWithinCheckin);
     setIsCheckoutTime(isWithinCheckout);
     
     // Update current time display
-    setCurrentTime(witaTime.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
+    setCurrentTime(witaTime.toLocaleTimeString('id-ID', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      second: '2-digit',
+      timeZone: 'Asia/Makassar'
+    }));
   };
 
   useEffect(() => {
-    // Check checkout time every 30 seconds
-    checkCheckoutTime();
-    const timer = setInterval(checkCheckoutTime, 30000);
+    // Check time windows immediately and then every 5 seconds for real-time updates
+    checkTimeWindows();
+    const timer = setInterval(checkTimeWindows, 5000);
     
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    // Auto-refresh attendance status every 10 seconds when user has a class
+    if (!user?.class) return;
+    
+    const refreshTimer = setInterval(() => {
+      fetchAttendanceStatus();
+    }, 10000);
+    
+    return () => clearInterval(refreshTimer);
+  }, [user?.class]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -380,10 +410,24 @@ export default function StudentDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      // Call logout API to clear cookie
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear localStorage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Redirect to login
+      router.push('/login');
+    }
   };
 
   if (loading) {
@@ -629,18 +673,22 @@ export default function StudentDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
           <button
             onClick={handleCheckin}
-            disabled={actionLoading || attendance?.check_in_time}
+            disabled={actionLoading || attendance?.check_in_time || !isCheckinTime}
             className={`${
               attendance?.check_in_time 
                 ? 'bg-gradient-to-r from-gray-300 to-gray-400 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-xl hover:shadow-2xl active:scale-95'
+                : isCheckinTime
+                ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-xl hover:shadow-2xl active:scale-95'
+                : 'bg-gradient-to-r from-gray-300 to-gray-400 cursor-not-allowed'
             } text-white py-6 sm:py-8 rounded-2xl font-bold text-lg sm:text-xl transition-all disabled:opacity-70 disabled:cursor-not-allowed touch-manipulation`}
           >
             <div className="flex flex-col items-center gap-2">
               <span className="text-3xl sm:text-4xl">{attendance?.check_in_time ? '✅' : '📍'}</span>
               <span className="text-sm sm:text-base">{attendance?.check_in_time ? 'Sudah Check-in' : 'Check-in Kehadiran'}</span>
               {!attendance?.check_in_time && (
-                <span className="text-xs sm:text-sm font-normal opacity-90">Jam 07:00 - 12:00</span>
+                <span className="text-xs sm:text-sm font-normal opacity-90">
+                  {isCheckinTime ? 'Jam 07:00 - 12:00 WITA' : `Tutup (${currentTime} WITA)`}
+                </span>
               )}
             </div>
           </button>
@@ -659,9 +707,13 @@ export default function StudentDashboard() {
             <div className="flex flex-col items-center gap-2">
               <span className="text-3xl sm:text-4xl">{attendance?.check_out_time ? '✅' : '🏁'}</span>
               <span className="text-sm sm:text-base">{attendance?.check_out_time ? 'Sudah Check-out' : 'Check-out Kehadiran'}</span>
-              {attendance?.check_in_time && !attendance?.check_out_time && (
+              {!attendance?.check_out_time && (
                 <span className="text-xs sm:text-sm font-normal opacity-90">
-                  {isCheckoutTime ? 'Jam 14:00 - 15:00' : `Belum Jam Checkout (Sekarang: ${currentTime})`}
+                  {!attendance?.check_in_time 
+                    ? 'Check-in dulu'
+                    : isCheckoutTime 
+                    ? 'Jam 14:00 - 15:00 WITA' 
+                    : `Tutup (${currentTime} WITA)`}
                 </span>
               )}
             </div>
@@ -674,15 +726,27 @@ export default function StudentDashboard() {
             <span className="text-2xl sm:text-3xl flex-shrink-0">⏰</span>
             <div className="flex-1">
               <h3 className="font-bold text-gray-800 mb-2 text-sm sm:text-base">Jadwal Absensi</h3>
-              <div className="space-y-1 text-xs sm:text-sm text-gray-700">
-                <p className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-green-700 whitespace-nowrap">🟢 Check-in:</span> 
-                  <span>07:00 - 12:00 WITA</span>
+              <div className="space-y-2 text-xs sm:text-sm text-gray-700">
+                <p className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold text-green-700 whitespace-nowrap">🟢 Check-in:</span> 
+                    <span>07:00 - 12:00 WITA</span>
+                  </span>
+                  {isCheckinTime && <span className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse">AKTIF</span>}
                 </p>
-                <p className="flex items-center gap-2 flex-wrap">
-                  <span className="font-semibold text-blue-700 whitespace-nowrap">🔵 Check-out:</span> 
-                  <span>14:00 - 15:00 WITA</span>
+                <p className="flex items-center justify-between gap-2 flex-wrap">
+                  <span className="flex items-center gap-2">
+                    <span className="font-semibold text-blue-700 whitespace-nowrap">🔵 Check-out:</span> 
+                    <span>14:00 - 15:00 WITA</span>
+                  </span>
+                  {isCheckoutTime && <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse">AKTIF</span>}
                 </p>
+                <div className="border-t border-yellow-300 pt-2 mt-2">
+                  <p className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-700">⏰ Waktu Sekarang:</span> 
+                    <span className="font-mono font-bold text-gray-900">{currentTime} WITA</span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
