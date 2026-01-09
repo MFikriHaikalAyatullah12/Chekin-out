@@ -643,11 +643,11 @@ export default function StudentDashboard() {
               <div className="space-y-1 text-xs sm:text-sm text-gray-700">
                 <p className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-green-700 whitespace-nowrap">🟢 Check-in:</span> 
-                  <span>07:00 - 12:00 WIB</span>
+                  <span>07:00 - 12:00 WITA</span>
                 </p>
                 <p className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-blue-700 whitespace-nowrap">🔵 Check-out:</span> 
-                  <span>14:00 - 15:00 WIB</span>
+                  <span>14:00 - 15:00 WITA</span>
                 </p>
               </div>
             </div>
